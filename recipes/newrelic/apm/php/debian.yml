@@ -375,7 +375,7 @@ install:
       cmds:
         - |
           echo -e "{{.ARROW}}Installing New Relic PHP Agent package{{.GRAY}}"
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install newrelic-php5 -y -qq
+          # sudo DEBIAN_FRONTEND=noninteractive apt-get install newrelic-php5 -y -qq
       silent: true
 
     install_tarball:
@@ -458,17 +458,31 @@ install:
           #
 
           read -r APPLICATION_NAME < "{{.TMP_INSTALL_DIR}}/{{.USER_INPUT}}"
+          echo -e "{{.YELLOW}}cli dir path after change is $CLI_INI_DIR{{.GRAY}}"
+          echo -e "{{.YELLOW}}web dir path after change is $WEB_INI_DIR{{.GRAY}}"
           INI_DIRS=($WEB_INI_DIR $CLI_INI_DIR)
           for dirs in $INI_DIRS; do
             for ini in $dirs; do
+              echo -e "{{.YELLOW}}ini path is $ini{{.GRAY}}"
               #
               # Get the PHP INI Directory associated with this specific NR INI file
               #
               php_ini_dir=$(echo $ini | sed -n 's/\(.*\)\/conf.d/\1/p')
-              if [ -z "${php_ini_dir}" ]; then
-                php_ini_dir=$ini
+              if [[ -z "${php_ini_dir}" ]]; then
+                if [[ -z "${CLI_DIRS}" ]]; then
+                    if [[ -d "${ini}/../apache2" ]]; then
+                      php_ini_dir="${ini}/../apache2"
+                    fi
+                    if [[ -d "${ini}/../fpm" ]]; then
+                      php_ini_dir="${ini}/../fpm"
+                    fi
+                elif [[ -d "${ini}/../cli" ]]; then
+                  php_ini_dir="${ini}/../cli"
+                else
+                  php_ini_dir=$ini
+                fi
               fi
-
+              echo -e "{{.YELLOW}}php ini dir path is: $php_ini_dir{{.GRAY}}"
               #
               # Get the PHP Binary directory associated with this particular NR INI file.
               sed_slash_ini=$(echo "${ini}"  | sed 's/\//\\\//g')
@@ -520,7 +534,7 @@ install:
               #
               target_ini_dir="/etc/php5/conf.d/"
               if [ -x /usr/sbin/phpquery ]; then
-                target_ini_dir="${ini}/../../mods-available/"
+                target_ini_dir="${php_ini_dir}/../mods-available/"
               elif [ -x /usr/sbin/php5endmod ]; then
                 target_ini_dir="/etc/php5/mods-available/"
               fi
@@ -533,7 +547,11 @@ install:
               # This ensures we always get the most up to date newrelic.ini file on the
               # system.
               #
-              mv ${ini_full_name} ${target_ini_dir}
+
+              ini_dir=$(dirname "$ini_full_name")
+              if [[ "$ini_dir" != "$target_ini_dir" ]]; then
+                mv "${ini_full_name}" "${target_ini_dir}"
+              fi
 
               #
               # We rely on the package installer to enable the newrelic module.
@@ -645,7 +663,8 @@ install:
                 info_text="{{.TMP_INSTALL_DIR}}/cli_info.txt"
               fi
               while read -r bin_loc php_ini_dir nr_ini_dir; do
-                sudo -u $nonpriv_user $bin_loc -c "${php_ini_dir}/php.ini" -c "${nr_ini_dir}/newrelic.ini" -n --ini &>/dev/null
+                echo -e "bin_loc is ${bin_loc}, php_ini_dir is ${php_ini_dir} and nr_ini_dir is ${nr_ini_dir}"
+                sudo -u $nonpriv_user $bin_loc -c "${php_ini_dir}/php.ini" -c "${nr_ini_dir}/newrelic.ini" -n --ini
               done < "${info_text}"
             done
           else
