@@ -407,9 +407,9 @@ install:
           # defined. An extraneous '/' here treats the URL as an HTML doc.
           curl -s -O "$RELEASE_URL$AGENT_TARBALL"
           gzip -dc "$AGENT_TARBALL" | tar xf -
-          cd "$AGENT
+          cd "$AGENT"
           echo -e "{{.WHITE}}Running PHP Agent installer{{.GRAY}}"
-          NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=true NR_INSTALL_KEY="{{.NEW_RELIC_LICENSE_KEY}}" ./newrelic-install install
+          sudo NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=true NR_INSTALL_KEY="{{.NEW_RELIC_LICENSE_KEY}}" ./newrelic-install install
 
     configure:
       cmds:
