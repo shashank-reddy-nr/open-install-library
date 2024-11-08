@@ -548,9 +548,10 @@ install:
               # system.
               #
 
-              ini_dir=$(dirname "$ini_full_name")
-              if [[ "$ini_dir" != "$target_ini_dir" ]]; then
-                mv "${ini_full_name}" "${target_ini_dir}"
+              source_dir=$(dirname "$(realpath "$ini_full_name")")
+              destination_dir=$(realpath "$target_ini_dir")
+              if [[ "$source_dir" != "$destination_dir" ]]; then
+                mv "${ini_full_name}" "${destination_dir}"
               fi
 
               #
